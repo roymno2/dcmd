@@ -11,15 +11,15 @@ usage:  -r [pid_path] [lock_path] [run_dir] [stdout] [stderr] [cmdline many part
 
 示例
 标准模式
-dcmd /var/run/showpwd.pid /var/run/showpwd.lock /root/xlab/showpwd.sh start
+python pydcmd /var/run/showpwd.pid /var/run/showpwd.lock /root/xlab/showpwd.sh start
 或者指定运行路径的模式，注意那个 -r
-dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh start
+python pydcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh start
 
 关闭之前被后台化的进程
-dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh stop
+python pydcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh stop
 
 其中的cmdline可以是多个字段，例如
-dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " find / -name "helloworld" start
+python pydcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " find / -name "helloworld" start
 
 
 说明
