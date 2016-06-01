@@ -18,6 +18,9 @@ dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpw
 关闭之前被后台化的进程
 dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh stop
 
+其中的cmdline可以是多个字段，例如
+dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " find / -name "helloworld" start
+
 
 说明
 pid_path：pid文件所在位置，如showpwd.pid
