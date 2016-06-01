@@ -1,7 +1,7 @@
 # pydcmd
-python script run on python2.x in linux, can let any program run as daemon, and can stop it 
+python script run on python2.6 and 2.7 in linux, can let any program run as daemon, and can stop it 
 
-后台化运行辅助工具pydcmd 用于python2.x linux环境
+后台化运行辅助工具pydcmd 用于python2.6 及 2.7 linux环境
 
 Usage
 标准模式
