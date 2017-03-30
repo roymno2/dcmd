@@ -1,143 +1,158 @@
 #!/usr/bin/python  
-#! -*- coding=utf-8 -*-  
-import sys, os  
+#! -*- coding=utf-8 -*-
+import os  
+import sys
 import subprocess
 import time
+from optparse import OptionParser 
   
-cmdline=""
-home_dir=""
-pid_file=""
-lockfile=""
-start_mode="normal"
 
-  
-def daemonize (target_dir,stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):  
-     #重定向标准文件描述符（默认情况下定向到/dev/null）  
+
+
+
+# done pass
+def get_abs_path_for_linux(base_path,target_path):
+    # /开头的肯定是绝对路径
+    target_path=target_path.strip()
+    base_path=base_path.strip()
+    bpart=target_path.split("/")
+    fin_list=[]
+    if base_path[0]!="/":
+        print "run dir is not absolute path"
+        return None
+    if target_path!="":
+        if target_path[0]=="/":
+            return target_path
+        elif bpart[0]!="." and bpart[0]!="..":
+            return target_path
+        else:
+            if base_path[-1]=="/":
+                fin_path=base_path+target_path
+            else:
+                fin_path=base_path+"/"+target_path
+            
+            cpart=fin_path.split("/")
+            for i in cpart:
+                
+                # 如果是..，去掉fin_list的最后一个
+                # 如果是. 直接跳过这个.
+                if i==".":
+                    pass
+                elif i=="..":
+                    fin_list.pop()
+                else:
+                    fin_list.append(i)
+            
+            out_path="/".join(fin_list)
+
+            return out_path
+
+                
+    else:
+        
+        return ""
+
+# done pass
+def daemonize(target_dir, stdin='/dev/null', stdout='/dev/null', stderr='/dev/null'):  
+    #重定向标准文件描述符（默认情况下定向到/dev/null）  
     try:   
         pid = os.fork()   
-          #父进程(会话组头领进程)退出，这意味着一个非会话组头领进程永远不能重新获得控制终端。  
+        #父进程(会话组头领进程)退出，这意味着一个非会话组头领进程永远不能重新获得控制终端。  
         if pid > 0:  
-            sys.exit(0)   #父进程退出  
+            sys.exit(0)   
+            #父进程退出  
     except OSError, e:   
-        sys.stderr.write ("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror) )  
+        sys.stderr.write("fork #1 failed: (%d) %s\n" % (e.errno, e.strerror) )  
         sys.exit(1)  
   
-     #从母体环境脱离  
-    os.chdir(target_dir)  #chdir确认进程不保持任何目录于使用状态，否则不能umount一个文件系统。也可以改变到对于守护程序运行重要的文件所在目录  
-    os.umask(0)    #调用umask(0)以便拥有对于写的任何东西的完全控制，因为有时不知道继承了什么样的umask。  
-    os.setsid()    #setsid调用成功后，进程成为新的会话组长和新的进程组长，并与原来的登录会话和进程组脱离。  
+    #从母体环境脱离  
+    #chdir确认进程不保持任何目录于使用状态，否则不能umount一个文件系统。也可以改变到对于守护程序运行重要的文件所在目录  
+    os.chdir(target_dir)  
+    #调用umask(0)以便拥有对于写的任何东西的完全控制，因为有时不知道继承了什么样的umask。  
+    os.umask(0)   
+    #setsid调用成功后，进程成为新的会话组长和新的进程组长，并与原来的登录会话和进程组脱离。  
+    os.setsid()    
   
-     #执行第二次fork  
+    #执行第二次fork  
     try:   
         pid = os.fork()   
         if pid > 0:  
-            sys.exit(0)   #第二个父进程退出  
+            sys.exit(0)
+            #第二个父进程退出  
     except OSError, e:   
-        sys.stderr.write ("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror) )  
+        sys.stderr.write("fork #2 failed: (%d) %s\n" % (e.errno, e.strerror) )  
         sys.exit(1)  
   
-     #进程已经是守护进程了，重定向标准文件描述符  
+    #进程已经是守护进程了，重定向标准文件描述符  
   
-    for f in sys.stdout, sys.stderr: f.flush()  
+    for f in sys.stdout, sys.stderr:
+        f.flush()  
     si = open(stdin, 'r')  
     so = open(stdout, 'a+')  
     se = open(stderr, 'a+', 0)  
-    os.dup2(si.fileno(), sys.stdin.fileno())    #dup2函数原子化关闭和复制文件描述符  
+    os.dup2(si.fileno(), sys.stdin.fileno())
     os.dup2(so.fileno(), sys.stdout.fileno())  
     os.dup2(se.fileno(), sys.stderr.fileno())  
   
 #示例函数：每秒打印一个数字和时间戳  
 
 
-def debug_mode():
-    
-        cmd_object=subprocess.Popen(cmdline,shell=True,stdin=None,stdout=None, stderr=None )
-        the_pid=str(cmd_object.pid)
-        print the_pid
-
-
-def ever_process():
-        f_h=open(pid_file,"r")
-        the_pid=f_h.read().strip()
-        f_h.close()
-        if pid_run_status(int(the_pid))==True:
-            subprocess.call("kill -9 "+the_pid,shell=True,stdin=None,stdout=None, stderr=None )
-        
-        cmd_object=subprocess.Popen(cmdline,shell=True,stdin=None,stdout=None, stderr=None )
-        time.sleep(0.5)
-        f_h=open(pid_file,"r")
-        the_pid=f_h.read().strip()
-        f_h.close()
-
-        print the_pid
-        the_real_cmd=get_now_run_cmdline(the_pid)
-        print the_real_cmd
-        if the_real_cmd is not None:
-            f_h_lockfile=open(lockfile,"w")
-            f_h_lockfile.write(the_real_cmd)
-            f_h_lockfile.close()
-            f_h=open(pid_file+"._parent_pid","w")
-            f_h.write(str(os.getpid))
-            f_h.close()
-            
-            
-            while True:
-                if check_pid_run(int(the_pid))==False:
-                    cmd_object=subprocess.Popen(cmdline,shell=True,stdin=None,stdout=None, stderr=None )
-                    time.sleep(0.5)
-                    f_h=open(pid_file,"r")
-                    the_pid=f_h.read().strip()  
-                    f_h.close()
-                time.sleep(0.5)
-            
-    
-    
-
-def start_process():
+def debug_mode(cmdline):
+    # 执行一个命令，获得其pid
     cmd_object=subprocess.Popen(cmdline,shell=True,stdin=None,stdout=None, stderr=None )
     the_pid=str(cmd_object.pid)
-    f_h=open(pid_file,"w")
-    f_h.write(the_pid)
-    f_h.close()
-    time.sleep(0.5)
+    print the_pid
+
+
+
+
+def start_process(pidfile,lockfile,cmdline,outpid):
+
+    cmd_object=subprocess.Popen(["/bin/bash","-c",cmdline],stdin=None,stdout=None, stderr=None )
+    
+    if outpid==True:
+        # 获得外部生成的pid文件
+        time.sleep(1.5)
+        f_h=open(pidfile,"r")
+        the_pid=f_h.read().strip()
+        f_h.close()
+
+    else:
+        # 本地生成pid文件
+        the_pid=str(cmd_object.pid)
+        f_h=open(pidfile,"w")
+        f_h.write(the_pid)
+        f_h.close()
+        time.sleep(0.5)
+        
+        
     the_real_cmd=get_now_run_cmdline(the_pid)
     if the_real_cmd is not None:
         f_h_lockfile=open(lockfile,"w")
         f_h_lockfile.write(the_real_cmd)
         f_h_lockfile.close()
+        return True
+    else:
+        return False
     
-        
     
-
-def get_after_shell_part(sys_argv,from_which=2,end_count=1):
-    arg_list=[]
-    sys_len=len(sys_argv)
-    for i in range(from_which,sys_len-end_count):
-        arg_list.append(sys_argv[i])
-    return arg_list 
-    
-def stop_process(pidfile):
-    pid_num=check_pid_file(pidfile)
+def stop_process(pidfile,lockfile):
+    pid_num=check_pid_file(pidfile,lockfile)
     if pid_num is not None:
-        print "stop it"
         cmd_object=subprocess.call("kill -TERM "+str(pid_num),shell=True)
-        print "try normal end it "
         time_out_set=10
         start_now_time=time.time()
         while True:
             # check pid dead
-            if check_pid_file(pidfile) is None:
-                print "normal end it success"
+            if check_pid_file(pidfile,lockfile) is None:
                 return True
             time.sleep(0.1)
             if time_out_set+start_now_time<time.time():
                 subprocess.call("kill -KILL "+str(pid_num),shell=True)
-                print "force kill it"
                 return True
                 
         return True
     else:
-        print "not running, skip stop"
         return False
     
 def is_num_by_except(num):
@@ -148,14 +163,14 @@ def is_num_by_except(num):
 #        print "%s ValueError" % num
         return False    
     
-def check_pid_file(pidfile):
+def check_pid_file(pidfile,lockfile):
     if os.path.exists(pidfile)==True:
-        f_h=open(pid_file,"r")
+        f_h=open(pidfile,"r")
         f_c=f_h.read().strip()
         f_h.close()
         if is_num_by_except(f_c)==True:
             
-            if check_pid_run(int(f_c))==True:
+            if check_pid_run(int(f_c),lockfile)==True:
                 # print f_c+" running"
                 return int(f_c)
             else:
@@ -183,7 +198,7 @@ def get_now_run_cmdline(pid_num):
     else:
         return None
             
-def check_pid_run(pid_num):
+def check_pid_run(pid_num, lockfile):
     if os.path.exists(lockfile)==True:
     
         f_h_lockfile=open(lockfile,"r")
@@ -197,113 +212,104 @@ def check_pid_run(pid_num):
     else:
         return False
     
-def show_usage():
-    print "version: 1.3"
-    print "usage: [pid_path] [lock_path] [cmdline many part] [start|stop|restart|status]"
-    print "or usage:  -r [pid_path] [lock_path] [run_dir] [stdout] [stderr] [cmdline many part] [start|stop|restart|status]"
-
-    
   
 if __name__ == "__main__":  
-    if len(sys.argv)>4:
+    parser = OptionParser()  
+    parser.add_option("--pidfile", "--pidfile", dest="pidfile", default='', 
+                      help="pid file path", metavar="FILE")  
 
-        if sys.argv[1]=="-r":
-            if len(sys.argv)>8:
-                run_mode=sys.argv[1]
-                pid_file=sys.argv[2]
-                lockfile=sys.argv[3]
-                run_dir=sys.argv[4]
-                daemon_stdout=sys.argv[5]
-                daemon_stderr=sys.argv[6]
-            else:
-                show_usage()
-                sys.exit(1)
-        
-        else:
-            pid_file=sys.argv[1]
-            lockfile=sys.argv[2]
-            run_dir="/"
-            daemon_stdout="/dev/null"
-            daemon_stderr="/dev/null"
-            if sys.argv[3].strip()=="" or sys.argv[3].strip()=="null":
-                show_usage()
-                sys.exit(1)
-                
-        if sys.argv[1]=="-r":
-        
-            if sys.argv[-1]=="debug" or sys.argv[-1]=="ever" or sys.argv[-1]=="start" or sys.argv[-1]=="stop" or sys.argv[-1]=="restart" or sys.argv[-1]=="status":
-                cmdline_org_list=get_after_shell_part(sys.argv,from_which=7,end_count=1)
-            else:
-                cmdline_org_list=get_after_shell_part(sys.argv,from_which=7,end_count=0)
-            cmdline=" ".join(cmdline_org_list)
-            
-        else:
-        
-            if sys.argv[-1]=="debug" or sys.argv[-1]=="ever" or sys.argv[-1]=="start" or sys.argv[-1]=="stop" or sys.argv[-1]=="restart" or sys.argv[-1]=="status":
-                cmdline_org_list=get_after_shell_part(sys.argv,from_which=3,end_count=1)
-            else:
-                cmdline_org_list=get_after_shell_part(sys.argv,from_which=3,end_count=0)
-            cmdline=" ".join(cmdline_org_list)
-            
+    parser.add_option("--outpid", "--outpid",  
+                      action="store_true", dest="outpid", default=False,  
+                      help="is wait cmd create pid file")  
 
+    parser.add_option("--lockfile", "--lockfile", dest="lockfile", default='', 
+                      help="lock file path", metavar="FILE")  
+
+    parser.add_option("--homedir", "--homedir", dest="homedir", default='/', 
+                      help="start cmd path", metavar="FILE")  
+
+    parser.add_option("--stdout", "--stdout", dest="stdout", default='/dev/null', 
+                      help="start cmd path", metavar="FILE")  
+
+    parser.add_option("--stderr", "--stderr", dest="stderr", default='/dev/null', 
+                      help="start cmd path", metavar="FILE")  
+
+    parser.add_option("--cmd", "--cmd", dest="runcmd",  default='',   
+                      help="start cmdline", metavar="cmdline") 
+
+    parser.add_option("--action", "--action", dest="action",  default='start',  
+                      help="do what", metavar="start|stop|restart|status|debug") 
+      
+    (options, args) = parser.parse_args() 
+
+    # 命令行
+    cmdline=options.runcmd
+    # pid文件
+    pidfile=options.pidfile
+    # lock文件
+    lockfile=options.lockfile
+    # 使用程序自创建的pid文件
+    outpid=options.outpid
+    # 起始路径
+    run_dir=options.homedir
+    daemon_stdout=options.stdout
+    daemon_stderr=options.stderr
+
+    work_action=options.action
 
         
-        if run_dir=="null"  or run_dir==" " or run_dir=="":
-            run_dir="/"
-  
-        
-        if os.path.exists(run_dir)==False:
-            print "[Error] run dir not exists"
-        
-        if daemon_stdout=="null" or daemon_stdout=="" or daemon_stdout==" ":
-            daemon_stdout="/dev/null"
-            
-        if  daemon_stderr=="null" or daemon_stderr=="" or daemon_stderr==" ":
-             daemon_stderr="/dev/null"
-             
-        print "pid_file: "+pid_file
-        print "lockfile: "+lockfile
-        print "run_dir: "+run_dir
-        print "daemon_stdout: "+daemon_stdout
-        print "daemon_stderr: "+daemon_stderr
-        print cmdline
-        
-        if sys.argv[-1]=="ever":
-            daemonize(run_dir,'/dev/null',daemon_stdout,daemon_stderr)  
-            ever_process()
-        if sys.argv[-1]=="debug":
-    
-            debug_mode()
-        
-        if sys.argv[-1]=="start":
-            if check_pid_file(pid_file) is None:
-                print "starting..."
-                #pass
-                daemonize(run_dir,'/dev/null',daemon_stdout,daemon_stderr)  
-                start_process()
-            else:
-                print "already running"
-            
-        if sys.argv[-1]=="stop":
-     
-            stop_process(pid_file)
-        if sys.argv[-1]=="restart":
-            print "restart..."
-            stop_process(pid_file)
-            time.sleep(1)
-            if check_pid_file(pid_file) is None:
-                print "start...."
-                daemonize(run_dir,'/dev/null',daemon_stdout,daemon_stderr)  
-                start_process()
-            else:
-                print "already running"
-        if sys.argv[-1]=="status":
-            if check_pid_file(pid_file) is not None:
-                print "already running"
-            else:
-                print "not running"
-            
-    else:
-        show_usage()
+    if os.path.exists(run_dir)==False:
+        print "[Error] run dir not exists"
         sys.exit(1)
+
     
+    if work_action=="debug":
+        debug_mode(cmdline)
+    
+    elif work_action=="start":
+        if check_pid_file(pidfile, lockfile) is None:
+            print "starting...   "
+            #pass
+            daemonize(run_dir,'/dev/null',daemon_stdout,daemon_stderr)  
+            if start_process(pidfile,lockfile,cmdline,outpid):
+                sys.exit(0)
+            else:
+                sys.exit(1)
+        else:
+            print "already running"
+            sys.exit(1)
+        
+    elif work_action=="stop":
+        print "stop...   "
+        if stop_process(pidfile,lockfile):
+            print '[OK]'
+            sys.exit(0)
+        else:
+            print '[FAIL]'
+            sys.exit(1)
+
+    elif work_action=="restart":
+        print "restart...   "
+        stop_process(pidfile,lockfile)
+        time.sleep(0.5)
+        if check_pid_file(pidfile, lockfile) is None:
+            #pass
+            daemonize(run_dir,'/dev/null',daemon_stdout,daemon_stderr)  
+            if start_process(pidfile,lockfile,cmdline,outpid):
+                sys.exit(0)
+            else:
+                sys.exit(1)
+        else:
+            print '[FAIL]'
+            sys.exit(1)
+
+
+    elif work_action=="status":
+        print "status... "
+        if check_pid_file(pidfile,lockfile) is not None:
+            print '[OK]'
+            sys.exit(0)
+        else:
+            print '[FAIL]'
+            sys.exit(1)
+            
