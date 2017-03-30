@@ -1,30 +1,54 @@
-# dcmd
-python script run on python2.6 and 2.7 in linux, can let any program run as daemon, and can stop it 
+dcmd
+项目中老是要把一群进程变成后台独立运行的状态，所以写了这个，没有依赖，只要是Linux环境, python2.6或者python2.7都能用
 
-后台化运行辅助工具dcmd 用于python2.6 及 2.7 linux环境
+python script , can let any program run as daemon, and can stop it 
+for python2.6 and 2.7 in linux
 
-Usage
-标准模式
-usage: [pid_path] [lock_path] [cmdline many part] [start|stop|restart|status]
-或者指定运行路径的模式
-usage:  -r [pid_path] [lock_path] [run_dir] [stdout] [stderr] [cmdline many part] [start|stop|restart|status]
 
-示例
-标准模式
-python dcmd /var/run/showpwd.pid /var/run/showpwd.lock /root/xlab/showpwd.sh start
-或者指定运行路径的模式，注意那个 -r
-python dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh start
+进程运行后台化工具
+用于python2.6 及 2.7 linux环境
 
-关闭之前被后台化的进程
-python dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " /root/xlab/showpwd.sh stop
 
-其中的cmdline可以是多个字段，例如
-python dcmd -r /var/run/showpwd.pid /var/run/showpwd.lock " " " " " " find / -name "helloworld" start
+
+
+Usage: dcmd [options]
+
+
+Options:
+  -h, --help            show this help message and exit
+  --pidfile=FILE, --pidfile=FILE
+                        pid file path
+  --outpid, --outpid    is wait cmd create pid file
+  --lockfile=FILE, --lockfile=FILE
+                        lock file path
+  --homedir=FILE, --homedir=FILE
+                        start cmd path
+  --stdout=FILE, --stdout=FILE
+                        start cmd path
+  --stderr=FILE, --stderr=FILE
+                        start cmd path
+  --cmd=cmdline, --cmd=cmdline
+                        start cmdline
+  --action=start|stop|restart|status|debug, --action=start|stop|restart|status|debug
+                        do what
+
+
 
 
 说明
-pid_path：pid文件所在位置，如showpwd.pid
-lock_path : 用于确认程序运行cmd内容的文件，如showpwd.lock
-run_dir : 指定后台运行环境的当前路径，不想写可以用 “ ” 或者 “” 或者 null 替代，自动换成默认的 /
-stdout : 指定标准输出到哪个文件，不想写可以用 “ ” 或者 “” 或者 null 替代，自动换成默认的 /dev/null
-stdout : 指定标准错误到哪个文件，不想写可以用 “ ” 或者 “” 或者 null 替代，自动换成默认的 /dev/null
+--pidfile=FILE：（必须）pid文件所在位置，如/var/run/showpwd.pid
+--outpid：设置后被执行进程自身生成此pid文件，缺省为dcmd自动生成pid文件
+--lockfile：（必须）用于确认程序运行cmd内容的cmdline，dcmd在执行stop和restart时需要这个文件，如/var/run/showpwd.lock
+--homedir：调用目标进程的初始环境路径，缺省为/
+--stdout=FILE：指定标准输出到哪个文件，缺省为/dev/null
+--stderr=FILE：指定标准错误到哪个文件，缺省为/dev/null
+--cmd=cmdline：（必须）要执行的命令
+--action=start|stop|restart|status|debug：（必须）执行的动作，是start启动，还是stop停止
+
+安利一波，使用示例
+ssserver的/etc/init.d/运行控制脚本
+#!/bin/bash
+runcmd='ssserver -p 11111 -k 000000 -m aes-256-cfb --user nobody -d start'
+Python /usr/bin/dcmd --action=$1 --pid='/var/run/shadowsocks.pid' --outpid --lock='/var/run/my_shadowsocks.lock' --cmd="${runcmd}"
+
+是不是炒鸡简单！！！！！！！
